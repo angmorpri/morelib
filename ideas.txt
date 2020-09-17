@@ -1,0 +1,62 @@
+MoreLib 0.1
+-----------
+Librería para funciones y demás que puedan ser útiles
+
+Submódulos
+----------
+	Random
+	------
+	Ofrece funciones y clases para gestionar acciones aleatorias.
+	Extiende el módulo de Python 'random'.
+		- biased_choice (function)
+			Dado un grupo de objetos y una probabilidad asociada a ellos, escoge uno aleatoriamente acorde a la probabilidad de dicho objeto de salir.
+		- RandomList (class)
+			Gestiona grupos de objetos aleatorios, admitiendo selección incremental, selección desigual, desgaste de componentes, etcétera
+
+	Util
+	----
+	Funciones variadas, dedicadas a diferentes propósitos, sin ninguno específico.
+	Extiende el módulo BuiltIns de Python.
+		- djoin (function)
+		- dict_join (function)
+			'Suma' dos o más diccionarios, sin sobreescribir llaves repetidas
+		- dsort (function)
+		- dict_sort (function)
+			Ordena un diccionario siguiendo la key indicada y devuelve un OrderedDict
+		- multisplit (function)
+			Splitea una cadena de caracteres en todos aquellos dados en la lista
+		- nsplit (function)
+			Splite una cadena en dos, separando en la N ocurrencia del caracter indicado.
+		- Biter
+			Iterador bidireccional
+		- DataList
+			Counter especializado en cálculo de estadísticas
+		- Singleton
+			Metaclass for Singletons
+		- Globale
+			Ofrece un sistema para utilizar variables globales al estilo de C.
+			Permite variables inter-módulos
+
+
+	Math
+	----
+	Relacionados con matemáticas
+		- normalize (function)
+			Dada una lista de números, los normaliza en un rango, generalmente entre 0 y 1.
+		- remap (function)
+			Mapea una variable de un rango a otro dado
+
+	IO
+	--
+	Funciones de entrada / salida con archivos / ficheros.
+		- lines (function)
+			Convierte un archivo en una lista de líneas trimeadas
+		- ask (function)
+			Objeto estático de la clase AskHandler
+		- AskHandler (clase)
+		- MenuHandler (clase)
+		- ArgsHandler (clase)
+
+
+
+
