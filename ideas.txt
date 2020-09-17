@@ -27,6 +27,8 @@ Submódulos
 			Splitea una cadena de caracteres en todos aquellos dados en la lista
 		- nsplit (function)
 			Splite una cadena en dos, separando en la N ocurrencia del caracter indicado.
+		- empty_generator (function)
+			Returns an empty generator
 		- Biter
 			Iterador bidireccional
 		- DataList
@@ -45,6 +47,8 @@ Submódulos
 			Dada una lista de números, los normaliza en un rango, generalmente entre 0 y 1.
 		- remap (function)
 			Mapea una variable de un rango a otro dado
+		- vector multiplication (function)
+			Pues eso
 
 	IO
 	--
