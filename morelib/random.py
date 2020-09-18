@@ -5,11 +5,31 @@
 
     This module includes the random-related features.
 
+    Functions:
+        biased_choice() -> Item: Given a list of elements and their associated
+            weights, it randomly chooses one of them, having higher weights
+            more chance to be chosen.
+
+    Classes:
+        RandomList(): Offers some random-related operations for lists of objets,
+            such as shuffling, biased choosing, aging, etc.
+        RandomGenerator(): Variant of the RandomList that allows to use the class
+            as an iterator. You can also build this using the RandomList method
+            `get_generator()`.
+
+    Exceptions:
+        NoItemsLeftException: Raises when a RandomList runs out of elements to
+            returns as result of choosing.
+
+
     Created:        17 Sep 2020
-    Last modified:  17 Sep 2020
+    Last modified:  18 Sep 2020
 """
 
+from collections.abc import Generator
+from itertools import zip_longest
 import random
+
 
 #
 # Defines
@@ -24,7 +44,7 @@ NO_ITEMS_LEFT_MSG = "RandomList has no more items to choose from " \
 #
 def biased_choice (*args, **kwargs):
     """Returns a random choice from the given iterable, where each item has
-    a specific weightability (weight) to be chosen.
+    a specific probability (weight) to be chosen.
 
     You can provide as item list:
      - A list of tuples, where its first element must be the object, and the
@@ -35,13 +55,11 @@ def biased_choice (*args, **kwargs):
      - A list and a `key` keyword with a function that will be applied to each
      element of the list in order to generate its weight.
 
-    It will return the randomly chosen element, but if you set the keyword
-    `generator` to True, it will return an infinite generator you can call
-    with `next()`.
+    It will return the randomly chosen element, without its weight.
 
     """
     _rl = RandomList(*args, **kwargs)
-    return _rl.chose()
+    return _rl.choice()[-1]
 
 
 #
@@ -51,11 +69,54 @@ class NoItemsLeftException (Exception):
     """Custom exception for when there are no items left to choose"""
     pass
 
+
 class RandomList (object):
-    """Class for random-related operations with multiple elements.
+    """Class for random-related operations with lists of elements.
 
     This class provides a bunch of functions meant to handle groups of elements,
     such as biased choices, normalization, random choice with elimination, etc.
+
+    Public attributes:
+        items (list[tuple]): List with all the items with their weights.
+        key (callable): Key applied to an item to get its weight.
+
+    Public methods:
+        shuffle() -> None: Randomly rearranges the items in the list.
+        choice() -> list[Item]: Randomly chooses one of more items from the list,
+            taking into account their weights as probabilities of be chosen.
+        uchoice() -> list[Item]: Randomly chooses one of more items from the list,
+            without taking into account their weights.
+
+        uniform() -> None: Gives all the elements in the list the same weight.
+        normalize() -> None: Remaps the weights in the items so they are between
+            0 and 1.
+        age() -> None: Changes the weights of the items so the ones that were not
+            chosen the last time have a bigger chance to be chosen the next time.
+
+        append() -> None: Appends a new element to the list, with many forms to
+            give it its weight.
+        remove() -> None: Removes the first item whichs element matches the
+            given.
+        pop() -> Item: Removes the item in the given position and returns it.
+        clear() -> None: Removes all the items in the list.
+        clear_all() -> None: Removes all the items, keys and extra features from
+            the object.
+        index() -> int: Given an element, returns the index of its first occurence
+            in the list.
+        count() -> int: Counts the times the given element appears in the list.
+        sort() -> None: Sorts the elements in the list, treated as tuples.
+        copy() -> list[tuple]: Returns a copy of the current list.
+        elems() -> list[Item]: Returns the list with all the elements in the list.
+        weights() -> list[float]: Returns a list with all the weights in the list.
+        weight_of() -> float: Given an element in the list, returns its weight.
+        at() -> Item: Returns the element in the position requested.
+
+        configure() -> None: Sets some parameters and adjustes some behaviors.
+        reset_repeated() -> None: Resets the repeated cache.
+        reset_aging() -> None: Resets the weights of the items before aging.
+
+        get_generator() -> RandomGenerator: Builds and returns a RandomGenerator
+            based on this RandomList.
 
     """
     def __init__ (self, *args, **kwargs):
@@ -95,7 +156,8 @@ class RandomList (object):
         self._no_repeat = False
         self._repeated_cache = list()
         self._always_age = False
-        self._aging_coef = -1           # Aging coeficient.
+        self._aging_coef = DEFAULT_AGING_COEF           # Aging coeficient.
+        self._backup = None                             # For aging backup.
 
         # Check arguments and build
         if len(args) == 2:
@@ -103,7 +165,8 @@ class RandomList (object):
             items = args[0]
             weights = [float(n) for n in args[1][:len(items)]]
             self._stored_weights = (float(w) for w in args[1][len(items):])
-            self.items = list(zip(items, weights))
+            for item, weight in zip_longest(items, weights):
+                self.items.append([item, weight or 0.0])
 
         elif len(args) == 1:
             for item in args[0]:
@@ -117,8 +180,22 @@ class RandomList (object):
                     # Uniform probability
                     self.items.append([item, 1/len(args[0])])
 
+        # Checks weights are correct
+        if not all(w >= 0 for w in self.weights()):
+            raise ValueError("RandomList requires positive weights")
+
         # Configure
         self.configure(**kwargs)
+
+    def get_generator (self):
+        """Returns a RandomGenerator created from this list"""
+        _rg = RandomGenerator()
+        _rg.items = self.items.copy()
+        _rg.key = self.key
+        _rg._no_repeat = self._no_repeat
+        _rg._always_age = self._always_age
+        _rg._aging_coef = self._aging_coef
+        return _rg
 
 
     # Generic list methods and extended list methods
@@ -138,6 +215,9 @@ class RandomList (object):
                     weight = float(self.key(item))
                 else:
                     weight = 0.0
+        if weight < 0:
+            raise ValueError("RandomList requires positive weights")
+        self.items.append([item, weight])
         self.configure()
 
     def remove (self, req):
@@ -149,11 +229,14 @@ class RandomList (object):
                 self.items.remove(elem)
                 _removed = elem
                 break
+        else:
+            raise ValueError(f"RandomList could not remove element {req!r}: "\
+                             f"it does not exist")
         return _removed
 
     def pop (self, pos=-1):
         """Pops the last item of the list, or the `i` one, if given"""
-        return self.remove(self.items[pos][0])
+        return self.remove(self.items[pos][0])[0]
 
     def clear (self):
         """Clear the items list, only the items list"""
@@ -163,6 +246,7 @@ class RandomList (object):
         """Clear the items list, the stored values, and the key"""
         self.items = list()
         self._stored_weights = (_ for _ in ())
+        self.key = None
 
     def index (self, req, start=None, end=None):
         """Returns a zero-based index in the list for the first item whose
@@ -209,7 +293,7 @@ class RandomList (object):
                 _ret = weight
                 break
         else:
-            raise ValueError()
+            raise ValueError(f"RandomList element {req!r} not in list")
         return _ret
 
     def at (self, pos):
@@ -228,7 +312,7 @@ class RandomList (object):
         """Shuffles all the objects in the list"""
         return random.shuffle(self.items)
 
-    def choice (self, k=1, no_repeat=False):
+    def choice (self, k=1, no_repeat=False, age=False):
         """Returns `k` randomly generated elements from the list, based on their
         weight to appear.
 
@@ -236,11 +320,15 @@ class RandomList (object):
         be chosen in the same execution. This option overrides whatever is
         set for global repeatition, but just for this execution.
 
+        If `age` is set to True, items will age each time they generate. This
+        overrides the global configuration.
+
         It only returns the element, never the weight.
 
         """
         choices = list()
         no_repeat = no_repeat or self._no_repeat
+        age = age or self._always_age
         repeated = self._repeated_cache     # List of repeated elements.
         for _ in range(k):
             # Filtering 0 weights
@@ -248,9 +336,12 @@ class RandomList (object):
             # Filtering non-repeated
             if no_repeat:
                 allowed = list(filter(lambda x: x[0] not in repeated, allowed))
+
             # Checking there are still elements where to chose
             if not allowed:
-                continue
+                raise NoItemsLeftException("RandomList has no items left to "\
+                                           "return (perhaps you need to clear "\
+                                           "the repeated cache?)")
 
             # Running the algorithm
             random.shuffle(allowed)
@@ -258,38 +349,49 @@ class RandomList (object):
             rndval = random.uniform(0.0, total_weight)
             rmin = 0.0
             rmax = 0.0
+            choice = None
             for elem in allowed:
                 item = elem[0]
                 weight = elem[1]
                 rmax += weight
                 if (rmin <= rndval < rmax):
-                    # Choice made
-                    choices.append(item)
-                    repeated.append(item)   # Even if we don't use it.
+                    choice = item
                     break
             else:
-                choices.append(allowed[-1][0])
-                repeated.append(allowed[-1][0])
+                choice = allowed[-1][0]
+            choices.append(choice)
 
-        if not choices:
-            # If anything was chosen, it raises an exception
-            raise NoItemsLeftException(NO_ITEMS_LEFT_MSG)
+            # Saving extra parameters
+            self._last = choices.copy()
+            if no_repeat:
+                repeated.append(choice)
+            if age:
+                self.age()
 
-        self._last = choices.copy()
         if self._no_repeat:
             self._repeated_cache += repeated
-        if self._always_age:
-            self.age()
 
         return choices
 
-    def uchoice (self, k=1, repeat=True):
-        """Uniform choice, ignoring specific weightabilities."""
-        _safe = self.items.copy()
-        self.uniform()
-        _ret = self.choice(k, repeat)
-        self.items = _safe
-        return _ret
+    def uchoice (self, k=1, no_repeat=False):
+        """Uniform choice, ignoring specific weights.
+
+        Does not have into account any global repeatition nor aging configuration
+
+        """
+        elems = self.elems()
+        repeated = list()
+        choices = list()
+        for _ in range(k):
+            if no_repeat:
+                allowed = list(filter(lambda x: x not in repeated, elems))
+            else:
+                allowed = elems
+            choice = random.choice(allowed)
+            repeated.append(choice)
+            choices.append(choice)
+
+        return choices
 
 
     # Modificators
@@ -329,9 +431,9 @@ class RandomList (object):
             - aging_coef (float): Changes the aging coeficent, by default, 2.
 
         """
-        self._no_repeat = kwargs.get('no_repeat', False)
-        self._always_age = kwargs.get('always_age', False)
-        self._aging_coef = kwargs.get('aging_coef', DEFAULT_AGING_COEF)
+        self._no_repeat = kwargs.get('no_repeat', self._no_repeat)
+        self._always_age = kwargs.get('always_age', self._always_age)
+        self._aging_coef = kwargs.get('aging_coef', self._aging_coef)
 
         if self._always_age:
             self._backup = self.items.copy()    # Backup for resetting
@@ -344,8 +446,9 @@ class RandomList (object):
 
     def reset_aging (self):
         """Resets the weights of the elements before start aging"""
-        self.items = self._backup
-        self._backup = list()
+        if self._backup:
+            self.items = self._backup
+            self._backup = list()
 
 
     # Output and testing methods
@@ -355,6 +458,23 @@ class RandomList (object):
     def __str__ (self):
         return str(self.items)
 
+
+class RandomGenerator (RandomList, Generator):
+    """RandomList which also allows generator operations.
+
+    Iterating through it will constantly generate new choices from the original
+    list. If the no repeatition mode is activated, it will end up raising an
+    StopIteration exception.
+
+    """
+    def send (self, arg):
+        try:
+            return self.choice()[0]
+        except NoItemsLeftException:
+            self.throw()
+
+    def throw (self, type=None, value=None, traceback=None):
+        raise StopIteration
 
 
 
