@@ -16,8 +16,11 @@
         dot_product() -> float: Performs the dot product operation between two
             or more vectors.
 
+
     Created:        18 Sep 2020
     Last modified:  18 Sep 2020
+        - Ready for version 0.1.0
+
 """
 
 #
@@ -83,7 +86,6 @@ def vector_product (v, w, *args):
     Raises ValueError exception if the length or the lists are not equal.
 
     """
-
     if isinstance(v, (int, float)):
         # v * [w0 w1 ... wN] operation.
         ans = [v*n for n in w]

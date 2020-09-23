@@ -23,9 +23,11 @@
 
 
     Created:        17 Sep 2020
-    Last modified:  18 Sep 2020
-"""
+    Last modified:  21 Sep 2020
+        - Ready for version 0.1.0
+        - Changed the repr() representation.
 
+"""
 from collections.abc import Generator
 from itertools import zip_longest
 import random
@@ -453,7 +455,7 @@ class RandomList (object):
 
     # Output and testing methods
     def __repr__ (self):
-        return f"RandomList object with {len(self)} items at {self.id}"
+        return f"RandomList({self.items})"
 
     def __str__ (self):
         return str(self.items)
@@ -476,10 +478,6 @@ class RandomGenerator (RandomList, Generator):
     def throw (self, type=None, value=None, traceback=None):
         raise StopIteration
 
-
-
-
-
-
-
+    def __repr__ (self):
+        return f"RandomGenerator({self.items})"
 
