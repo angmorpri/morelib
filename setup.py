@@ -22,7 +22,7 @@ setup(
       	'Topic :: Utilities',
       ],
       keywords = "extra, util, utils, more",
-      python_requires = ">=3.6, <4",
+      python_requires = ">=3.6",
       packages = find_packages(),
       #package_data = {},
 )
