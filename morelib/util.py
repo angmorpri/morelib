@@ -8,7 +8,7 @@
 
     Functions:
         For list handling:
-            is_iterable() -> bool: Determines whether a given item is iterable.
+            isiterable() -> bool: Determines whether a given item is iterable.
             lcut() -> list, list: Divides a list in two by a given position.
 
         For dict handling:
@@ -50,8 +50,9 @@
 
 
     Created:        20 Sep 2020
-    Last modified:  23 Sep 2020
+    Last modified:  24 Sep 2020
         - Ready for version 0.1.0
+        - Fixed the docs for DataList.
 
 """
 from collections.abc import Iterable
@@ -62,7 +63,7 @@ from collections import OrderedDict
 # Functions
 #
 #   List related
-def is_iterable (it):
+def isiterable (it):
     """Returns True if the given `it` is an iterable"""
     return isinstance(it, Iterable)
 
@@ -73,7 +74,7 @@ def lcut (l, n):
 
 #   Dict-related
 def djoin (x, y, *args, **kwargs):
-    """Safely oins two or more dictionaries, without losing information.
+    """Safely joins two or more dictionaries, without losing information.
 
     If dictionaries have repeated keys, their contents are joined by using the
     `add` operation (+), or the custom function given with the key arg `key`.
@@ -100,7 +101,7 @@ def djoin (x, y, *args, **kwargs):
                                         "be addible")
     return ret
 
-def dsort (d, key, reverse=False):
+def dsort (d, key=None, reverse=False):
     """Sorts a dictionary and returns an OrderedDict with the sort made"""
     ds = sorted(d.items(), key=key, reverse=reverse)
     return OrderedDict(ds)
@@ -409,6 +410,30 @@ class DataList (object):
     vanilla Counter, but orientated to stats generation, probability view,
     and group handling.
 
+    Public methods:
+        update() -> None: Adds new values, or updates old ones, from lists or
+            dictionaries.
+        add() -> self: Adds a new value, or updates an old one.
+        subtract() -> self: Removies an item, or decreases its value, if any
+            given.
+        clear() -> self: Resets all the counters to 0.
+
+        items() -> list: Returns a list with the items, with many available
+            formats.
+        elements() -> list: Returns a list with the items, repeated once per
+            its count.
+        counts() -> list: Returns the counts of the items.
+        weights() -> list: Returns the weights of the items.
+        total() -> float: Returns the sum of the counts of the items.
+        get() -> float: Returns the count of the asked element, or None.
+        set() -> None: Changes the value of an already existing item.
+
+        filter() -> list: Returns a list of items filtered by the given key.
+        rank() -> list: Ranks the items in the list.
+        top() -> tuple: Returns the top ranked items.
+        bottom() -> tuple: Returns the bottom ranked items.
+        sort() -> list: Multisorts the items, and returns a list.
+
     """
     def __init__ (self, *args, **kwargs):
         """Constructor may take:
@@ -492,9 +517,9 @@ class DataList (object):
             self._items.append(_DataItem(new_item, float(init_count), None))
         return self
 
-    def substract (self, old_item, cnt=None):
+    def subtract (self, old_item, cnt=None):
         """It performs two operations:
-         - If `cnt` is different to None, it substracts the given `cnt`
+         - If `cnt` is different to None, it subtracts the given `cnt`
         to the original (fixed to 0).
          - If `cnt` is None, it removes the item from the list.
 
