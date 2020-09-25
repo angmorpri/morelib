@@ -81,7 +81,7 @@ It is divided in the following submodules:
   Class that provides a list which items are counted and weighted.
 
   * **Constructor**: Accepts a dictionary, a list of tuples, or just item names.
-* __`update()`__: Adds new elements to the list, or updates existing ones.
+  * __`update()`__: Adds new elements to the list, or updates existing ones.
   * __`add()`__: Adds a new item, or updates it if exists.
   * __`subtract()`__: Subtracts from an existing item, or removes it.
   * __`clear()`__: Resets the counts from each item.
@@ -91,7 +91,7 @@ It is divided in the following submodules:
   * __`filter()`__: Filters the items in the list, given a function.
   * __`rank()`__: Ranks the items in the list, and returns a list of tuples.
   * __`sort()`__: Multisorts the items in the list, and returns a list.
-  
+
   
 
 #### Dictionary related
